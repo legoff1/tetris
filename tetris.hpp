@@ -259,8 +259,26 @@ class Keyboard{
         int8_t rotate;
     public:
         void update_position(Tetrino_state *tetrino_state); // update positions according the the inputs on keyboard 
-
 };
+
+void Keyboard::update_position(Tetrino_state *tetrino_state){
+    
+    if (go_left>0){
+        -- tetrino_state->offset_col;
+    }
+    if (go_right>0){
+        ++ tetrino_state->offset_col;
+    }
+
+    if (go_down>0){
+        ++ tetrino_state->offset_row;
+    }
+
+    if(rotate>0){
+        tetrino_state->rotation = (tetrino_state->rotation + 90) % 360; 
+    }
+
+}
 
 // =============================================== CLASS TETRIS -> DEFINITION AND FUNCTION IMPLEMENTATIONS ==============================================
 
