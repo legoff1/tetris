@@ -53,7 +53,7 @@ public:
 
 // =============================================== CLASS GAME -> DEFINITION AND FUNCTION IMPLEMENTATIONS ==============================================
 
-class Game
+class Tetris
 {
     public:
     uint8_t board[WIDTH * HEIGHT];
@@ -86,23 +86,21 @@ class Board{
 private:
     const int32_t width;
     const int32_t height;
-    uint8_t* board;
-    // Keyboard k;
 public:
-    explicit Board(): width(WIDTH), height(HEIGHT),board(nullptr){} //setting the constructor
+    explicit Board(): width(WIDTH), height(HEIGHT){} //setting the constructor
 
     const int32_t get_width(); // get the width of the board
     const int32_t get_height(); // get the height of the board
     uint8_t* set_board(); // creates a board with the right dimensions of the game - projection a 2d array in a same dimension 1d array
     uint8_t get_boardmatrix(uint8_t* brd,int32_t row, int32_t col) const; // get the value of an index of the board from a 2d matrix
-    void set_boardmatrix(int32_t row, int32_t col, uint8_t value); // set the value of an index of the board in a 2d matrix
+    void set_boardmatrix(uint8_t* board,int32_t row, int32_t col, uint8_t value); // set the value of an index of the board in a 2d matrix
     int create_window(); // create and displays a window with SDL2
     void fill_board_rect(SDL_Renderer *renderer, int32_t coord_x, int32_t coord_y, int32_t w, int32_t h, Color color); // just filling the board with the rect method of SDL to get the tetrinos
     void draw_onboard(SDL_Renderer *renderer, int32_t row, int32_t col, uint8_t value, int32_t delta_x, int32_t delta_y); // now we are drawing the rect (cells/pieces) filled above
     void draw_tetrino(SDL_Renderer *renderer, Tetrino_state *t_state, int32_t delta_x, int32_t delta_y); // drawing and rendering the tetrinos using the draw_onboard method
-    void render_game(Game *tetris_game, SDL_Renderer *renderer); // uses the functions above to renderr the game itself with the pieces and other features
+    void render_game(Tetris *tetris_game, SDL_Renderer *renderer); // uses the functions above to renderr the game itself with the pieces and other features
     bool check_board_limits(uint8_t* brd,Tetrino_state *tetrino_state); // set the limits of the board and check if the piece is at the bounderies or in colision with another piece.
-    void update_tetrino_state(Game *game, Keyboard *input); // update positions according the the inputs on keyboard
+    void update_tetrino_state(Tetris *game, Keyboard *input); // update positions according the the inputs on keyboard
 };
 
 const int32_t Board::get_width(){
@@ -113,30 +111,24 @@ const int32_t Board::get_height(){
     return height; 
 }
 
-uint8_t* Board::set_board(){
-    board[width * height];
-    return board;
-}
-
 uint8_t Board::get_boardmatrix(uint8_t* brd,int32_t row, int32_t col) const{ 
     int32_t index = row * width + col;
     return brd[index]; // tells us if there is or not any cell placed at the index on the board! 
 }
 
-void Board::set_boardmatrix(int32_t row, int32_t col, uint8_t value){
+void Board::set_boardmatrix(uint8_t* board,int32_t row, int32_t col, uint8_t value){
     int32_t index = row * width + col;
     board[index] = value;
 }
 
 int Board::create_window(){
 
-    set_board();
     SDL_Init(SDL_INIT_EVERYTHING);
     SDL_Window *window = SDL_CreateWindow(
         "Tetris",
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
-        9*40,
+        width*40,
         height*40,
         SDL_WINDOW_ALLOW_HIGHDPI
     );
@@ -146,7 +138,7 @@ int Board::create_window(){
         SDL_RENDERER_ACCELERATED || SDL_RENDERER_PRESENTVSYNC
     );
 
-    Game game = {};
+    Tetris game = {};
     Keyboard input = {};
 
     // game.piece.index=2;
@@ -192,7 +184,7 @@ int Board::create_window(){
         render_game(&game,renderer);
         // render_game(&tet1,renderer);
         SDL_RenderPresent(renderer);
-        // tet.offset_row += 1;
+        // game.piece.offset_row+=1;
         // tet.rotation = (tet.rotation + 90) % 360;
         // SDL_Delay(500);
     }
@@ -227,7 +219,7 @@ void Board::draw_onboard(SDL_Renderer *renderer, int32_t row, int32_t col, uint8
     fill_board_rect(renderer,x,y,GRID_SIZE,GRID_SIZE,darks); // drawing the first cell
     
     // overdrawing with different colors to make a small render effect of various squares
-    int32_t cell_edge = GRID_SIZE/10;
+    int32_t cell_edge = GRID_SIZE/9;
     fill_board_rect(renderer, x + cell_edge, y, GRID_SIZE - cell_edge, GRID_SIZE - cell_edge,lights);
     fill_board_rect(renderer, x + cell_edge , y + cell_edge, GRID_SIZE - cell_edge * 2 , GRID_SIZE - cell_edge * 2, basics);
 
@@ -251,7 +243,7 @@ void Board::draw_tetrino(SDL_Renderer *renderer, Tetrino_state *t_state, int32_t
     }
 }
 
-void Board::render_game(Game *tetris_game, SDL_Renderer *renderer){
+void Board::render_game(Tetris *tetris_game, SDL_Renderer *renderer){
     draw_tetrino(renderer,&tetris_game->piece,0,0);
 }
 
@@ -301,7 +293,7 @@ bool Board::check_board_limits(uint8_t* brd,Tetrino_state *tetrino_state){
     return true;
 }
 
-void Board::update_tetrino_state(Game *game, Keyboard *input){
+void Board::update_tetrino_state(Tetris *game, Keyboard *input){
     
     Tetrino_state piece = game->piece;
 
