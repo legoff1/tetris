@@ -14,8 +14,7 @@
 #include <assert.h>
 
 #define WIDTH 10
-#define HEIGHT 24 // 2 lines invisible to pop up new peaces without show to the user
-#define VISIBLE_HEIGHT 22
+#define HEIGHT 22 // 2 lines invisible to pop up new peaces without show to the user
 #define GRID_SIZE 30
 
 // =============================================== CLASS TETRINO STATE -> DEFINITION AND FUNCTION IMPLEMENTATIONS ==============================================
@@ -28,7 +27,7 @@ public:
     int32_t offset_row; // row and column to indetify where the piece currently is in the gme field (board)
     int32_t offset_col;
     int32_t rotation;
-    explicit Tetrino_state(uint8_t idx, int32_t os_row,int32_t os_col, int32_t rot): index(idx), offset_row(os_row), offset_col(os_col),rotation(rot){}
+    // explicit Tetrino_state(): index(0), offset_row(0), offset_col(0),rotation(0){}
     const uint8_t get_position(const Tetrino *tetrino,int32_t row, int32_t col,int32_t rot); // find the position of a tetrino even if it is rotated or not
 };
 
@@ -52,6 +51,34 @@ public:
     return 0;
 }
 
+// =============================================== CLASS GAME -> DEFINITION AND FUNCTION IMPLEMENTATIONS ==============================================
+
+class Game
+{
+    public:
+    uint8_t board[WIDTH * HEIGHT];
+    // uint8_t lines[HEIGHT];
+    // int32_t pending_line_count;
+    
+    Tetrino_state piece;  
+};
+
+class Keyboard // take the inputs of the keyboard
+{
+    public:
+    uint8_t left;
+    uint8_t right;
+    uint8_t up;
+    uint8_t down;
+
+    uint8_t a;
+    
+    int8_t dleft;
+    int8_t dright;
+    int8_t dup;
+    int8_t ddown;
+    int8_t da;
+};
 
 // =============================================== CLASS BOARD -> DEFINITION AND FUNCTION IMPLEMENTATIONS ==============================================
 
@@ -60,21 +87,22 @@ private:
     const int32_t width;
     const int32_t height;
     uint8_t* board;
+    // Keyboard k;
 public:
-    explicit Board(): width(10*40), height(20*40),board(nullptr){} //setting the constructor
+    explicit Board(): width(WIDTH), height(HEIGHT),board(nullptr){} //setting the constructor
 
     const int32_t get_width(); // get the width of the board
     const int32_t get_height(); // get the height of the board
     uint8_t* set_board(); // creates a board with the right dimensions of the game - projection a 2d array in a same dimension 1d array
-    uint8_t get_boardmatrix(int32_t row, int32_t col) const; // get the value of an index of the board from a 2d matrix
+    uint8_t get_boardmatrix(uint8_t* brd,int32_t row, int32_t col) const; // get the value of an index of the board from a 2d matrix
     void set_boardmatrix(int32_t row, int32_t col, uint8_t value); // set the value of an index of the board in a 2d matrix
     int create_window(); // create and displays a window with SDL2
     void fill_board_rect(SDL_Renderer *renderer, int32_t coord_x, int32_t coord_y, int32_t w, int32_t h, Color color); // just filling the board with the rect method of SDL to get the tetrinos
     void draw_onboard(SDL_Renderer *renderer, int32_t row, int32_t col, uint8_t value, int32_t delta_x, int32_t delta_y); // now we are drawing the rect (cells/pieces) filled above
     void draw_tetrino(SDL_Renderer *renderer, Tetrino_state *t_state, int32_t delta_x, int32_t delta_y); // drawing and rendering the tetrinos using the draw_onboard method
-    void render_game(Tetrino_state *tetris_game, SDL_Renderer *renderer); // uses the functions above to renderr the game itself with the pieces and other features
-    bool check_board_limits(Tetrino_state *tetrino_state); // set the limits of the board and check if the piece is at the bounderies or in colision with another piece.
-
+    void render_game(Game *tetris_game, SDL_Renderer *renderer); // uses the functions above to renderr the game itself with the pieces and other features
+    bool check_board_limits(uint8_t* brd,Tetrino_state *tetrino_state); // set the limits of the board and check if the piece is at the bounderies or in colision with another piece.
+    void update_tetrino_state(Game *game, Keyboard *input); // update positions according the the inputs on keyboard
 };
 
 const int32_t Board::get_width(){
@@ -90,9 +118,9 @@ uint8_t* Board::set_board(){
     return board;
 }
 
-uint8_t Board::get_boardmatrix(int32_t row, int32_t col) const{
+uint8_t Board::get_boardmatrix(uint8_t* brd,int32_t row, int32_t col) const{ 
     int32_t index = row * width + col;
-    return board[index]; // tells us if there is or not any cell placed at the index on the board! 
+    return brd[index]; // tells us if there is or not any cell placed at the index on the board! 
 }
 
 void Board::set_boardmatrix(int32_t row, int32_t col, uint8_t value){
@@ -102,13 +130,14 @@ void Board::set_boardmatrix(int32_t row, int32_t col, uint8_t value){
 
 int Board::create_window(){
 
+    set_board();
     SDL_Init(SDL_INIT_EVERYTHING);
     SDL_Window *window = SDL_CreateWindow(
         "Tetris",
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
-        width,
-        height,
+        9*40,
+        height*40,
         SDL_WINDOW_ALLOW_HIGHDPI
     );
     SDL_Renderer *renderer = SDL_CreateRenderer(
@@ -117,32 +146,55 @@ int Board::create_window(){
         SDL_RENDERER_ACCELERATED || SDL_RENDERER_PRESENTVSYNC
     );
 
+    Game game = {};
+    Keyboard input = {};
+
+    // game.piece.index=2;
+
 
     if(NULL == window){
         std::cout << "Error Detected" << std::endl;
         return 1;
     }
-
-    Tetrino_state tet(2,0,0,90);
-    Tetrino_state tet1(1,5,5,0);
-
-    while(true){
+   
+    bool quit = false;
+    while(!quit){
         SDL_Event windowEvent;
         if (SDL_PollEvent(&windowEvent)){
             if (SDL_QUIT==windowEvent.type){
-                std::cout << "entrou" << std::endl;
-                break;
+                std::cout << "Quit Screen" << std::endl;
+                quit=true;
             }
         }
 
+        int32_t num_keys;
+        const uint8_t *key_states = SDL_GetKeyboardState(&num_keys);
+
+        if(key_states[SDL_SCANCODE_ESCAPE]){
+            quit = true;
+        }
+
+        Keyboard old_input = input;
+
+        input.left = key_states[SDL_SCANCODE_LEFT];
+        input.right = key_states[SDL_SCANCODE_RIGHT];
+        input.up = key_states[SDL_SCANCODE_UP];
+        input.down = key_states[SDL_SCANCODE_DOWN];
+
+        input.dleft = input.left - old_input.left;
+        input.dright = input.right - old_input.right;
+        input.dup = input.up - old_input.up;
+        input.ddown = input.down - old_input.down;
+        
         SDL_SetRenderDrawColor(renderer,0,0,0,0);
         SDL_RenderClear(renderer);
-        render_game(&tet,renderer);
-        render_game(&tet1,renderer);
+        update_tetrino_state(&game,&input);
+        render_game(&game,renderer);
+        // render_game(&tet1,renderer);
         SDL_RenderPresent(renderer);
-        tet.offset_row += 1;
+        // tet.offset_row += 1;
         // tet.rotation = (tet.rotation + 90) % 360;
-        SDL_Delay(500);
+        // SDL_Delay(500);
     }
 
     SDL_DestroyWindow(window);
@@ -175,7 +227,7 @@ void Board::draw_onboard(SDL_Renderer *renderer, int32_t row, int32_t col, uint8
     fill_board_rect(renderer,x,y,GRID_SIZE,GRID_SIZE,darks); // drawing the first cell
     
     // overdrawing with different colors to make a small render effect of various squares
-    int32_t cell_edge = GRID_SIZE/8;
+    int32_t cell_edge = GRID_SIZE/10;
     fill_board_rect(renderer, x + cell_edge, y, GRID_SIZE - cell_edge, GRID_SIZE - cell_edge,lights);
     fill_board_rect(renderer, x + cell_edge , y + cell_edge, GRID_SIZE - cell_edge * 2 , GRID_SIZE - cell_edge * 2, basics);
 
@@ -199,16 +251,16 @@ void Board::draw_tetrino(SDL_Renderer *renderer, Tetrino_state *t_state, int32_t
     }
 }
 
-void Board::render_game(Tetrino_state *tetris_game, SDL_Renderer *renderer){
-    draw_tetrino(renderer,tetris_game,0,0);
+void Board::render_game(Game *tetris_game, SDL_Renderer *renderer){
+    draw_tetrino(renderer,&tetris_game->piece,0,0);
 }
 
-bool Board::check_board_limits(Tetrino_state *tetrino_state){
+bool Board::check_board_limits(uint8_t* brd,Tetrino_state *tetrino_state){
     const Tetrino *tetrino = TETRINOS + tetrino_state->index;
     assert(tetrino);
     
-    for (int32_t row = 0; row < height; row++){
-        for(int32_t col = 0; col < width; col++){
+    for (int32_t row = 0; row < tetrino->side; row++){
+        for(int32_t col = 0; col < tetrino->side; col++){
             //get the value of the position of the tetrino
             uint8_t t_position_value = tetrino_state->get_position(tetrino,row,col,tetrino_state->rotation);
 
@@ -222,7 +274,7 @@ bool Board::check_board_limits(Tetrino_state *tetrino_state){
                     return false;
                 }
 
-                if(t_position_row > width){
+                if(t_position_row >= height){
                     // then it is out of the right bounds of the board
                     return false;
                 }
@@ -232,12 +284,12 @@ bool Board::check_board_limits(Tetrino_state *tetrino_state){
                     return false;
                 }
                 
-                if(t_position_col > height){
+                if(t_position_col >= width){
                     // then it is out of the bottom bounds of the board
                     return false;
                 }
 
-                if(get_boardmatrix(t_position_row,t_position_col)){
+                if(get_boardmatrix(brd,t_position_row,t_position_col)){
                     // then there is already something at this exact index on the board! -> COLISION WITH OTHER TETRINOS!
                     return false;
                 }
@@ -249,47 +301,30 @@ bool Board::check_board_limits(Tetrino_state *tetrino_state){
     return true;
 }
 
-// =============================================== CLASS KEYBOARD -> DEFINITION AND FUNCTION IMPLEMENTATIONS ==============================================
-
-class Keyboard{
-    private:
-        int8_t go_left;
-        int8_t go_right;
-        int8_t go_down;
-        int8_t rotate;
-    public:
-        void update_position(Tetrino_state *tetrino_state); // update positions according the the inputs on keyboard 
-};
-
-void Keyboard::update_position(Tetrino_state *tetrino_state){
+void Board::update_tetrino_state(Game *game, Keyboard *input){
     
-    if (go_left>0){
-        -- tetrino_state->offset_col;
+    Tetrino_state piece = game->piece;
+
+    if (input->dleft>0){
+        -- piece.offset_col;
     }
-    if (go_right>0){
-        ++ tetrino_state->offset_col;
+    if (input->dright>0){
+        ++ piece.offset_col;
     }
 
-    if (go_down>0){
-        ++ tetrino_state->offset_row;
+    if (input->down>0){
+        piece.offset_row = piece.offset_row + 1;
     }
 
-    if(rotate>0){
-        tetrino_state->rotation = (tetrino_state->rotation + 90) % 360; 
+    if(input->dup > 0){
+        piece.rotation = (piece.rotation + 90) % 360; 
     }
 
+    if (check_board_limits(game->board,&piece)){
+        
+        game->piece = piece;
+    }
 }
-
-// =============================================== CLASS TETRIS -> DEFINITION AND FUNCTION IMPLEMENTATIONS ==============================================
-
-class Tetris{
- public:
-    Keyboard keyboard;
-    Board board;
-    Tetrino_state tetrino_state;
-};
-
-
 
 /*LEOZAO AQUI PARCEIRO, TO MANDANDO ESSA MSG PRA DIZER Q VAI DAR TD CERTO E Q CE VAI DESENROLAR ESSE TETRIS, PD FICAR TRANQUILO, TMJ SEMPRE. 
 BEIJO NA BUNDA GATAO
