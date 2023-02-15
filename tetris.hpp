@@ -91,7 +91,7 @@ public:
 
     const int32_t get_width(); // get the width of the board
     const int32_t get_height(); // get the height of the board
-    uint8_t* set_board(); // creates a board with the right dimensions of the game - projection a 2d array in a same dimension 1d array
+    // uint8_t* set_board(); // creates a board with the right dimensions of the game - projection a 2d array in a same dimension 1d array
     uint8_t get_boardmatrix(uint8_t* brd,int32_t row, int32_t col) const; // get the value of an index of the board from a 2d matrix
     void set_boardmatrix(uint8_t* board,int32_t row, int32_t col, uint8_t value); // set the value of an index of the board in a 2d matrix
     int create_window(); // create and displays a window with SDL2
