@@ -94,7 +94,7 @@ public:
     // uint8_t* set_board(); // creates a board with the right dimensions of the game - projection a 2d array in a same dimension 1d array
     uint8_t get_boardmatrix(uint8_t* brd,int32_t row, int32_t col) const; // get the value of an index of the board from a 2d matrix
     void set_boardmatrix(uint8_t* board,int32_t row, int32_t col, uint8_t value); // set the value of an index of the board in a 2d matrix
-    int create_window(); // create and displays a window with SDL2
+    int display_game(); // create and displays a window with SDL2
     void fill_board_rect(SDL_Renderer *renderer, int32_t coord_x, int32_t coord_y, int32_t w, int32_t h, Color color); // just filling the board with the rect method of SDL to get the tetrinos
     void draw_onboard(SDL_Renderer *renderer, int32_t row, int32_t col, uint8_t value, int32_t delta_x, int32_t delta_y); // now we are drawing the rect (cells/pieces) filled above
     void draw_tetrino(SDL_Renderer *renderer, Tetrino_state *t_state, int32_t delta_x, int32_t delta_y); // drawing and rendering the tetrinos using the draw_onboard method
@@ -121,7 +121,7 @@ void Board::set_boardmatrix(uint8_t* board,int32_t row, int32_t col, uint8_t val
     board[index] = value;
 }
 
-int Board::create_window(){
+int Board::display_game(){
 
     SDL_Init(SDL_INIT_EVERYTHING);
     SDL_Window *window = SDL_CreateWindow(
@@ -141,7 +141,7 @@ int Board::create_window(){
     Tetris game = {};
     Keyboard input = {};
 
-    // game.piece.index=2;
+    game.piece.index=2;
 
 
     if(NULL == window){
