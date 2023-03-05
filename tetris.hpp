@@ -11,6 +11,7 @@
 #include <iostream>
 #include "colors.hpp"
 #include "tetrino.hpp"
+#include "frames_per_level.hpp"
 #include <assert.h>
 
 #define WIDTH 10
@@ -51,7 +52,7 @@ public:
     return 0;
 }
 
-// =============================================== CLASS GAME -> DEFINITION AND FUNCTION IMPLEMENTATIONS ==============================================
+// =============================================== CLASS TETRIS -> DEFINITION AND FUNCTION IMPLEMENTATIONS ==============================================
 
 class Tetris
 {
@@ -60,9 +61,27 @@ class Tetris
     // uint8_t lines[HEIGHT];
     // int32_t pending_line_count;
     
-    Tetrino_state piece;  
+    Tetrino_state piece;
+
+    int32_t level;
+
+    float time;// absolute time of the game
+    float next_tetrino_drop_time; // time to drop the next tetrino
+
+    float get_next_drop_time();
 };
 
+float Tetris::get_next_drop_time(){
+
+    if(level > 29){
+        level = 29;
+    }
+
+    return FRAMES_PER_LEVEL[level] * SECONDS_PER_FRAME;
+}
+
+
+// =============================================== CLASS KEYBOARD -> DEFINITION AND FUNCTION IMPLEMENTATIONS ==============================================
 class Keyboard // take the inputs of the keyboard
 {
     public:
@@ -97,10 +116,14 @@ public:
     int display_game(); // create and displays a window with SDL2
     void fill_board_rect(SDL_Renderer *renderer, int32_t coord_x, int32_t coord_y, int32_t w, int32_t h, Color color); // just filling the board with the rect method of SDL to get the tetrinos
     void draw_onboard(SDL_Renderer *renderer, int32_t row, int32_t col, uint8_t value, int32_t delta_x, int32_t delta_y); // now we are drawing the rect (cells/pieces) filled above
-    void draw_tetrino(SDL_Renderer *renderer, Tetrino_state *t_state, int32_t delta_x, int32_t delta_y); // drawing and rendering the tetrinos using the draw_onboard method
+    void draw_tetrino(SDL_Renderer *renderer, Tetrino_state *t_state, int32_t delta_x, int32_t delta_y); // drawing and rendering the JUST tetrinos using the draw_onboard method
     void render_game(Tetris *tetris_game, SDL_Renderer *renderer); // uses the functions above to renderr the game itself with the pieces and other features
     bool check_board_limits(uint8_t* brd,Tetrino_state *tetrino_state); // set the limits of the board and check if the piece is at the bounderies or in colision with another piece.
     void update_tetrino_state(Tetris *game, Keyboard *input); // update positions according the the inputs on keyboard
+    void soft_drop(Tetris *game); // do the soft drop of a piece in the board. If the piece reaches the board limits, we merge it to the board.
+    void merge_tetrino_into_board(Tetris *game); // merges the tetrino into board when it reaches board`s limit.
+    void spawn_tetrino(Tetris *game); // spawn a new tetrino after the last one reaches the limit of the board.
+    void draw_board(SDL_Renderer *renderer, uint8_t *brd, int32_t offset_x, int32_t offset_y); // draw the game board WITHIN the tetrinos present on it
 };
 
 const int32_t Board::get_width(){
@@ -141,6 +164,8 @@ int Board::display_game(){
     Tetris game = {};
     Keyboard input = {};
 
+    spawn_tetrino(&game);
+
     game.piece.index=2;
 
 
@@ -151,6 +176,8 @@ int Board::display_game(){
    
     bool quit = false;
     while(!quit){
+        float time = SDL_GetTicks()/1000.0f;
+        game.time = time;
         SDL_Event windowEvent;
         if (SDL_PollEvent(&windowEvent)){
             if (SDL_QUIT==windowEvent.type){
@@ -243,7 +270,21 @@ void Board::draw_tetrino(SDL_Renderer *renderer, Tetrino_state *t_state, int32_t
     }
 }
 
+void Board::draw_board(SDL_Renderer *renderer, uint8_t *brd,int32_t offset_x, int32_t offset_y){
+    
+    for (int32_t row = 0; row < height;++row){
+        for (int32_t col = 0; col < width;++col){
+            uint8_t value = get_boardmatrix(brd,row,col);
+            if (value)
+            {
+                draw_onboard(renderer, row, col,value, offset_x, offset_y);
+            }
+        }
+    }
+}
+
 void Board::render_game(Tetris *tetris_game, SDL_Renderer *renderer){
+    draw_board(renderer,tetris_game->board,0,0);
     draw_tetrino(renderer,&tetris_game->piece,0,0);
 }
 
@@ -316,6 +357,48 @@ void Board::update_tetrino_state(Tetris *game, Keyboard *input){
         
         game->piece = piece;
     }
+
+    while(game->time > game->next_tetrino_drop_time){ // we do a while because if we skip frames, we drop it several times
+        soft_drop(game);
+    }
+
+
+}
+
+void Board::merge_tetrino_into_board(Tetris *game){
+    const Tetrino *tetrino = TETRINOS + game->piece.index;
+    for(int32_t row = 0; row < tetrino->side; row++){
+        for(int32_t col = 0; col < tetrino->side; col++){
+            // we get all the non 0 values (values which there is a part of the tetrino) and merge they to the board
+            uint8_t position = game->piece.get_position(tetrino,row,col,game->piece.rotation);
+            if(position){
+                // we translate to the global board coordinates
+                int32_t new_brd_row = game->piece.offset_row + row;
+                int32_t new_brd_col = game->piece.offset_col + col;
+                // and we merge the piece
+                set_boardmatrix(game->board,new_brd_row,new_brd_col,position);
+            }
+        }
+    }
+
+}
+
+void Board::spawn_tetrino(Tetris *game){
+    game->piece = {};
+    game->piece.offset_col = width/2;
+}
+
+void Board::soft_drop(Tetris *game){
+    ++game->piece.offset_row;
+    if(!check_board_limits(game->board,&game->piece)){
+        --game->piece.offset_row; // we do it because tha current row is 1 value after the board limits
+        // then, now, we merge the piece into the board
+        merge_tetrino_into_board(game);
+        // and right after that we spawn a new tetrino
+        spawn_tetrino(game);
+    }
+
+    game->next_tetrino_drop_time = game->time + game->get_next_drop_time();
 }
 
 /*LEOZAO AQUI PARCEIRO, TO MANDANDO ESSA MSG PRA DIZER Q VAI DAR TD CERTO E Q CE VAI DESENROLAR ESSE TETRIS, PD FICAR TRANQUILO, TMJ SEMPRE. 
