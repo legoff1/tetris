@@ -10,7 +10,7 @@
 #include <string>
 #include <iostream>
 #include "colors.hpp"
-#include "tetrino.hpp"
+#include "tetrino.hpp" 
 #include "frames_per_level.hpp"
 #include <assert.h>
 #include <random>
@@ -174,6 +174,7 @@ public:
     void spawn_tetrino(Tetris *game); // spawn a new tetrino after the last one reaches the limit of the board.
     int32_t check_and_count_lines(uint8_t *board,uint8_t *lines_that_got_out); // will see if the line is filled and if yes, will count the number of filled lines
     uint8_t see_row_filled(uint8_t *board, int32_t row_number); // just check if the row is filled or not -> will be used on the function above
+    uint8_t see_row_empty(uint8_t *board, int32_t row_number); // just check if the row is empty or not -> will be used to check game over condition
     void delete_lines(uint8_t *board,uint8_t *lines); // delete the filled lines
     void update_board_lines(Tetris *game); // call the delete lines function to update the board when a line is filled
     void update_tetris_game(Tetris *game, Keyboard *input); // update the game play with the existent phases
@@ -435,6 +436,11 @@ void Board::update_tetrino_state(Tetris *game, Keyboard *input){
         game->phase = TETRIS_GAME_HIGHLIGHT_LINE;
         game->highlight_end_time = game->time + 0.6f; // time to block the game play
     }
+
+    int32_t first_row = 2;
+    if(!see_row_empty(game->board,first_row)){
+        std::cout<< "GAME OVER"<<std::endl;
+    }
 }
 
 void Board::merge_tetrino_into_board(Tetris *game){
@@ -490,6 +496,16 @@ uint8_t Board::see_row_filled(uint8_t *board, int32_t row_number){
         }
     }
     return 1; // if we go through all the columns and none of them is empty, so we return 1 meaning that all the line is filled
+}
+
+uint8_t Board::see_row_empty(uint8_t *board, int32_t row_number){
+    for(int32_t col=0; col< width; col++){
+        if(!get_boardmatrix(board,row_number,col)){
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 int32_t Board::check_and_count_lines(uint8_t *board, uint8_t *lines_that_got_out){
