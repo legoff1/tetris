@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <string>
 #include <iostream>
 #include "colors.hpp"
@@ -74,7 +75,8 @@ class Keyboard // take the inputs of the keyboard
 
 enum Tetris_Game_Phase{ // Phases of the Tetris game
     TETRIS_GAME_PLAY, // normal play phase
-    TETRIS_GAME_HIGHLIGHT_LINE // phase in wich we clear a line and highlight it. The game should stop for a really little amount of time
+    TETRIS_GAME_HIGHLIGHT_LINE, // phase in wich we clear a line and highlight it. The game should stop for a really little amount of time
+    TETRIS_GAME_OVER // Game over phase 
 };
 
 class Tetris
@@ -149,6 +151,12 @@ int32_t Tetris::check_lines_to_next_level(){
 
 // =============================================== CLASS BOARD -> DEFINITION AND FUNCTION IMPLEMENTATIONS ==============================================
 
+enum Text_Align{
+    TEXT_LEFT,
+    TEXT_CENTER,
+    TEXT_RIGHT
+};
+
 class Board{
 private:
     const int32_t width;
@@ -166,7 +174,8 @@ public:
     void draw_onboard(SDL_Renderer *renderer, int32_t row, int32_t col, uint8_t value, int32_t delta_x, int32_t delta_y); // now we are drawing the rect (cells/pieces) filled above
     void draw_tetrino(SDL_Renderer *renderer, Tetrino_state *t_state, int32_t delta_x, int32_t delta_y); // drawing and rendering the JUST tetrinos using the draw_onboard method
     void draw_board(SDL_Renderer *renderer, uint8_t *brd, int32_t offset_x, int32_t offset_y); // draw the game board WITHIN the tetrinos present on it
-    void render_game(Tetris *tetris_game, SDL_Renderer *renderer); // uses the functions above to renderr the game itself with the pieces and other features
+    void draw_text(SDL_Renderer *renderer,TTF_Font *f, const char *text, int32_t x, int32_t y, Text_Align alignment, Color color); // draw the text on the screen
+    void render_game(Tetris *tetris_game, SDL_Renderer *renderer, TTF_Font *f); // uses the functions above to renderr the game itself with the pieces and other features
     bool check_board_limits(uint8_t* brd,Tetrino_state *tetrino_state); // set the limits of the board and check if the piece is at the bounderies or in colision with another piece.
     void update_tetrino_state(Tetris *game, Keyboard *input); // update positions according the the inputs on keyboard
     bool soft_drop(Tetris *game); // do the soft drop of a piece in the board. If the piece reaches the board limits, we merge it to the board.
@@ -201,6 +210,11 @@ void Board::set_boardmatrix(uint8_t* board,int32_t row, int32_t col, uint8_t val
 int Board::display_game(){
 
     SDL_Init(SDL_INIT_EVERYTHING);
+    
+    if(TTF_Init() < 0){       
+        return 2;
+    }
+    
     SDL_Window *window = SDL_CreateWindow(
         "Tetris",
         SDL_WINDOWPOS_UNDEFINED,
@@ -214,6 +228,9 @@ int Board::display_game(){
         -1,
         SDL_RENDERER_ACCELERATED || SDL_RENDERER_PRESENTVSYNC
     );
+
+    const char *used_font = "novem___.ttf";
+    TTF_Font *f = TTF_OpenFont(used_font,30);
 
     Tetris game = {};
     Keyboard input = {};
@@ -263,12 +280,12 @@ int Board::display_game(){
         SDL_SetRenderDrawColor(renderer,0,0,0,0);
         SDL_RenderClear(renderer);
         update_tetris_game(&game,&input);
-        render_game(&game,renderer);
+        render_game(&game,renderer,f);
         
         SDL_RenderPresent(renderer);
         
     }
-
+    TTF_CloseFont(f);
     SDL_DestroyWindow(window);
     SDL_Quit();
 
@@ -337,7 +354,37 @@ void Board::draw_board(SDL_Renderer *renderer, uint8_t *brd,int32_t offset_x, in
     }
 }
 
-void Board::render_game(Tetris *tetris_game, SDL_Renderer *renderer){
+void Board::draw_text(SDL_Renderer *renderer,TTF_Font *f, const char *text, int32_t x, int32_t y, Text_Align alignment, Color color){
+    // some SDL formalism to plot the text (as I've seen on a SDL tutorial)
+    SDL_Color c = SDL_Color {color.r,color.g,color.b,color.a};
+    SDL_Surface *surface = TTF_RenderText_Solid(f,text,c);
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer,surface);
+    SDL_Rect rect;
+    rect.w = surface->w;
+    rect.h = surface->h;
+    
+
+    switch (alignment){
+        case TEXT_LEFT: rect.x = x;
+        rect.y = y;
+        break;
+
+        case TEXT_RIGHT: rect.x = x - surface->w;
+        rect.y = y;
+        break;
+
+        case TEXT_CENTER:rect.x = x - surface->w/2;
+        rect.y = y;
+        break;
+    }
+
+    SDL_RenderCopy(renderer,texture,0,&rect);
+    SDL_FreeSurface(surface);
+    SDL_DestroyTexture(texture);
+}
+
+
+void Board::render_game(Tetris *tetris_game, SDL_Renderer *renderer,TTF_Font *f){
     draw_board(renderer,tetris_game->board,0,0);
     draw_tetrino(renderer,&tetris_game->piece,0,0);
     if(tetris_game->phase == TETRIS_GAME_HIGHLIGHT_LINE){
@@ -349,6 +396,12 @@ void Board::render_game(Tetris *tetris_game, SDL_Renderer *renderer){
             }
         }
     }
+
+    else if(tetris_game->phase==TETRIS_GAME_OVER){
+        draw_text(renderer,f,"GAME OVER!!!",width*GRID_SIZE/2,height*GRID_SIZE/2,TEXT_CENTER,Color(0xFF,0xFF,0xFF,0xFF));
+    }
+
+    draw_text(renderer,f,"TETRIS AL V0",width*GRID_SIZE/2,0,TEXT_CENTER,Color(0xFF,0xFF,0xFF,0xFF));
 }
 
 bool Board::check_board_limits(uint8_t* brd,Tetrino_state *tetrino_state){
@@ -437,9 +490,9 @@ void Board::update_tetrino_state(Tetris *game, Keyboard *input){
         game->highlight_end_time = game->time + 0.6f; // time to block the game play
     }
 
-    int32_t first_row = 2;
+    int32_t first_row = 0;
     if(!see_row_empty(game->board,first_row)){
-        std::cout<< "GAME OVER"<<std::endl;
+        game->phase = TETRIS_GAME_OVER;
     }
 }
 
@@ -500,12 +553,12 @@ uint8_t Board::see_row_filled(uint8_t *board, int32_t row_number){
 
 uint8_t Board::see_row_empty(uint8_t *board, int32_t row_number){
     for(int32_t col=0; col< width; col++){
-        if(!get_boardmatrix(board,row_number,col)){
-            return 1;
+        if(get_boardmatrix(board,row_number,col)){ // check if the cell is not empty
+            return 0;
         }
     }
 
-    return 0;
+    return 1; // if there is at least one empty column, returns 1 
 }
 
 int32_t Board::check_and_count_lines(uint8_t *board, uint8_t *lines_that_got_out){
