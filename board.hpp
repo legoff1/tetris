@@ -7,7 +7,6 @@
 
 #include "tetris.hpp"
 
-
 // =============================================== CLASS BOARD -> DEFINITION AND FUNCTION IMPLEMENTATIONS ==============================================
 
 enum Text_Align{

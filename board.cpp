@@ -36,8 +36,8 @@ int Board::display_game(){
         "Tetris",
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
-        width*GRID_SIZE,
-        height*GRID_SIZE,
+        (width)*GRID_SIZE,
+        (height)*GRID_SIZE + 60,
         SDL_WINDOW_ALLOW_HIGHDPI
     );
     SDL_Renderer *renderer = SDL_CreateRenderer(
@@ -202,13 +202,16 @@ void Board::draw_text(SDL_Renderer *renderer,TTF_Font *f, const char *text, int3
 
 
 void Board::render_game(Tetris *tetris_game, SDL_Renderer *renderer,TTF_Font *f){
-    draw_board(renderer,tetris_game->board,0,0);
-    draw_tetrino(renderer,&tetris_game->piece,0,0);
+    
+    int32_t margin_on_top = 60;
+    
+    draw_board(renderer,tetris_game->board,0,margin_on_top);
+    draw_tetrino(renderer,&tetris_game->piece,0,margin_on_top);
     if(tetris_game->phase == TETRIS_GAME_HIGHLIGHT_LINE){
         for(int32_t row=0; row < height; ++row){
             if(tetris_game->lines[row]){ // if the line is between the filled lines we highlight it
                 int32_t x =0;
-                int32_t y = row * GRID_SIZE;
+                int32_t y = row * GRID_SIZE + margin_on_top ;
                 fill_board_rect(renderer,x,y,width * GRID_SIZE ,GRID_SIZE,Color(0xFF,0xFF,0xFF,0xFF)); // highlighting with white
             }
         }
@@ -218,7 +221,13 @@ void Board::render_game(Tetris *tetris_game, SDL_Renderer *renderer,TTF_Font *f)
         draw_text(renderer,f,"GAME OVER!!!",width*GRID_SIZE/2,height*GRID_SIZE/2,TEXT_CENTER,Color(0xFF,0xFF,0xFF,0xFF));
     }
 
-    draw_text(renderer,f,"TETRIS AL V0",width*GRID_SIZE/2,0,TEXT_CENTER,Color(0xFF,0xFF,0xFF,0xFF));
+    // draw_text(renderer,f,"TETRIS AL V0",width*GRID_SIZE/2,0,TEXT_CENTER,Color(0xFF,0xFF,0xFF,0xFF));
+    char buffer[4096];
+    sprintf(buffer,"LEVEL = %d",tetris_game->level);
+    draw_text(renderer,f,buffer,0,0,TEXT_LEFT,Color(0xFF,0xFF,0xFF,0xFF));
+
+    sprintf(buffer,"POINTS = %d (%d)",tetris_game->points,tetris_game->line_count);
+    draw_text(renderer,f,buffer,0,30,TEXT_LEFT,Color(0xFF,0xFF,0xFF,0xFF));
 }
 
 bool Board::check_board_limits(uint8_t* brd,Tetrino_state *tetrino_state){

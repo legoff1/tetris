@@ -18,7 +18,7 @@
 
 #define WIDTH 10
 #define HEIGHT 22 // 2 lines invisible to pop up new peaces without show to the user
-#define GRID_SIZE 45
+#define GRID_SIZE 40
 
 // =============================================== CLASS TETRINO STATE -> DEFINITION AND FUNCTION IMPLEMENTATIONS ==============================================
 
@@ -64,7 +64,7 @@ class Tetris
 {
     public:
     uint8_t board[WIDTH * HEIGHT];
-    uint8_t lines[HEIGHT]; // steres the filled lines
+    uint8_t lines[HEIGHT]; // stores the filled lines
     
     Tetrino_state piece;
 
