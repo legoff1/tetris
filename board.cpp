@@ -52,7 +52,7 @@ int Board::display_game(){
     Tetris game = {};
     Keyboard input = {};
 
-    spawn_tetrino(&game);
+    game.spawn_tetrino(&game);
 
     game.piece.index=2;
 
@@ -86,13 +86,13 @@ int Board::display_game(){
         input.right = key_states[SDL_SCANCODE_RIGHT];
         input.up = key_states[SDL_SCANCODE_UP];
         input.down = key_states[SDL_SCANCODE_DOWN];
-        input.h = key_states[SDL_SCANCODE_SPACE];
+        input.space = key_states[SDL_SCANCODE_SPACE];
 
         input.dleft = input.left - old_input.left;
         input.dright = input.right - old_input.right;
         input.dup = input.up - old_input.up;
         input.ddown = input.down - old_input.down;
-        input.dh = input.h - old_input.h;
+        input.dspace = input.space - old_input.space;
         
         SDL_SetRenderDrawColor(renderer,0,0,0,0);
         SDL_RenderClear(renderer);
@@ -206,7 +206,12 @@ void Board::render_game(Tetris *tetris_game, SDL_Renderer *renderer,TTF_Font *f)
     int32_t margin_on_top = 60;
     
     draw_board(renderer,tetris_game->board,0,margin_on_top);
-    draw_tetrino(renderer,&tetris_game->piece,0,margin_on_top);
+
+    // just draw the tetrino if the game phase is play!!!
+    if(tetris_game->phase == TETRIS_GAME_PLAY){
+        draw_tetrino(renderer,&tetris_game->piece,0,margin_on_top);
+    }
+    
     if(tetris_game->phase == TETRIS_GAME_HIGHLIGHT_LINE){
         for(int32_t row=0; row < height; ++row){
             if(tetris_game->lines[row]){ // if the line is between the filled lines we highlight it
@@ -276,7 +281,7 @@ bool Board::check_board_limits(uint8_t* brd,Tetrino_state *tetrino_state){
     return true;
 }
 
-void Board::update_tetrino_state(Tetris *game, Keyboard *input){
+void Board::update_tetrisgame_state(Tetris *game, Keyboard *input){
     
     Tetrino_state piece = game->piece;
 
@@ -300,7 +305,7 @@ void Board::update_tetrino_state(Tetris *game, Keyboard *input){
         game->piece = piece;
     }
 
-    if(input->dh > 0){
+    if(input->dspace > 0){
         
         while(soft_drop(game)); // we make our hard drop while we can with the SPACE BAR on keyboard
     }
@@ -340,17 +345,6 @@ void Board::merge_tetrino_into_board(Tetris *game){
 
 }
 
-void Board::spawn_tetrino(Tetris *game){
-    game->piece = {};
-    std::random_device dev;
-    std::mt19937 rng(dev());
-    std::uniform_int_distribution<std::mt19937::result_type> dist7(0,6); // generating a random index to pick up the new tetrino randomly without any bias
-    uint8_t randidx = dist7(rng);
-    game->piece.index = randidx;
-    game->piece.offset_row = 0; 
-    game->piece.offset_col = width/2;
-}
-
 bool Board::soft_drop(Tetris *game){
     
     ++game->piece.offset_row;
@@ -359,7 +353,7 @@ bool Board::soft_drop(Tetris *game){
         // then, now, we merge the piece into the board
         merge_tetrino_into_board(game);
         // and right after that we spawn a new tetrino
-        spawn_tetrino(game);
+        game->spawn_tetrino(game);
         return false;
     }
     game->next_tetrino_drop_time = game->time + game->get_next_drop_time();
@@ -434,9 +428,13 @@ void Board::update_board_lines(Tetris *game){
 
 void Board::update_tetris_game(Tetris *game, Keyboard *input){
     switch(game->phase){
-        case TETRIS_GAME_PLAY : return update_tetrino_state(game,input); // goes updating the tetrinos on the board and play the normal game
+        case TETRIS_GAME_START : return game->update_game_start_state(game,input);
+        break;
+        case TETRIS_GAME_PLAY : return update_tetrisgame_state(game,input); // goes updating the tetrinos on the board and play the normal game
         break;
         case TETRIS_GAME_HIGHLIGHT_LINE : return update_board_lines(game); // moment when a line is filled -> blocks the game for a little while
+        break;
+        case TETRIS_GAME_OVER : return game->update_game_over_state(game,input);
         break;
     }
 }

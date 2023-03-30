@@ -35,10 +35,9 @@ public:
     void draw_text(SDL_Renderer *renderer,TTF_Font *f, const char *text, int32_t x, int32_t y, Text_Align alignment, Color color); // draw the text on the screen
     void render_game(Tetris *tetris_game, SDL_Renderer *renderer, TTF_Font *f); // uses the functions above to renderr the game itself with the pieces and other features
     bool check_board_limits(uint8_t* brd,Tetrino_state *tetrino_state); // set the limits of the board and check if the piece is at the bounderies or in colision with another piece.
-    void update_tetrino_state(Tetris *game, Keyboard *input); // update positions according the the inputs on keyboard
+    void update_tetrisgame_state(Tetris *game, Keyboard *input); // update positions according the the inputs on keyboard
     bool soft_drop(Tetris *game); // do the soft drop of a piece in the board. If the piece reaches the board limits, we merge it to the board.
     void merge_tetrino_into_board(Tetris *game); // merges the tetrino into board when it reaches board`s limit.
-    void spawn_tetrino(Tetris *game); // spawn a new tetrino after the last one reaches the limit of the board.
     int32_t check_and_count_lines(uint8_t *board,uint8_t *lines_that_got_out); // will see if the line is filled and if yes, will count the number of filled lines
     uint8_t see_row_filled(uint8_t *board, int32_t row_number); // just check if the row is filled or not -> will be used on the function above
     uint8_t see_row_empty(uint8_t *board, int32_t row_number); // just check if the row is empty or not -> will be used to check game over condition

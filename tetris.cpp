@@ -3,6 +3,7 @@
 //
 
 #include "tetris.hpp"
+#include "board.hpp"
 
 // =============================================== CLASS TETRINO STATE -> DEFINITION AND FUNCTION IMPLEMENTATIONS ==============================================
 
@@ -40,7 +41,7 @@ float Tetris::get_next_drop_time(){
 
 int32_t Tetris::compute_points(){
     // compute the points according to the tetris nintendo DS version and the docs of Monsuez as well
-    switch (line_count)
+    switch (filled_line_count)
     {
     case 1: return 40 * (level+1);
         break;
@@ -61,6 +62,18 @@ int32_t Tetris::min(int32_t x, int32_t y){
     return x < y ? x : y;
 }
 
+void Tetris::spawn_tetrino(Tetris *game){
+    game->piece = {};
+    std::random_device dev;
+    std::mt19937 rng(dev());
+    std::uniform_int_distribution<std::mt19937::result_type> dist7(0,6); // generating a random index to pick up the new tetrino randomly without any bias
+    uint8_t randidx = dist7(rng);
+    game->piece.index = randidx;
+    game->piece.offset_row = 0; 
+    game->piece.offset_col = WIDTH/2;
+    game->next_tetrino_drop_time = game->time + game->get_next_drop_time();
+}
+
 int32_t Tetris::check_lines_to_next_level(){
     // computing the limits to go up on levels according to the tetris Nintendo DS
     int32_t threshold_to_go_up_level_one = min((start_level * 10 + 10),max(100,(start_level*10 - 50)));
@@ -70,5 +83,36 @@ int32_t Tetris::check_lines_to_next_level(){
     else{
         int32_t difference = level - start_level;
         return threshold_to_go_up_level_one + difference*10; // we need to fill 10 lines plus in each level to go up to the next level 
+    }
+}
+
+void Tetris::update_game_over_state(Tetris *game, Keyboard *input){
+    if(input->dspace > 0){
+        game->phase == TETRIS_GAME_START; // if there is gameover, we can press the space bar to restart the game without exiting
+    }
+}
+
+void Tetris::update_game_start_state(Tetris *game, Keyboard *input)
+{
+    if(input->dup){
+        ++game->start_level; // press up to raise the starting level
+    }
+
+    
+    if(input->ddown){
+        --game->start_level; // press down to low the starting level
+    }
+
+    if(input->dspace){
+        
+        //clears the board
+        memset(game->board,0,(WIDTH*HEIGHT));
+        // set or reset the params of the game
+        game->level = game->start_level;
+        game->line_count = 0;
+        game->points = 0;
+        spawn_tetrino(game);
+        
+        game->phase = TETRIS_GAME_PLAY; // press space bar to begin the game at the level selected
     }
 }
