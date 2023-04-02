@@ -18,6 +18,7 @@
 
 #define WIDTH 10
 #define HEIGHT 22 // 2 lines invisible to pop up new peaces without show to the user
+#define VISIBLE_HIGHT 20
 #define GRID_SIZE 40
 
 // =============================================== CLASS TETRINO STATE -> DEFINITION AND FUNCTION IMPLEMENTATIONS ==============================================
@@ -85,9 +86,9 @@ class Tetris
     int32_t check_lines_to_next_level(); //check the lines already filled and see if they are sufficient to raise the level
     int32_t max(int32_t x, int32_t y);
     int32_t min(int32_t x, int32_t y);
-    void spawn_tetrino(Tetris *game); // spawn a new tetrino after the last one reaches the limit of the board.
-    void update_game_over_state(Tetris *game,Keyboard *input); // update the game when gameover happens
-    void update_game_start_state(Tetris *game,Keyboard *input);  // set the start of the game (select also starting level)
+    void spawn_tetrino(); // spawn a new tetrino after the last one reaches the limit of the board.
+    void update_game_over_state(Keyboard *input); // update the game when gameover happens
+    void update_game_start_state(Keyboard *input);  // set the start of the game (select also starting level)
     
 };
 

@@ -29,8 +29,9 @@ public:
     void set_boardmatrix(uint8_t* board,int32_t row, int32_t col, uint8_t value); // set the value of an index of the board in a 2d matrix
     int display_game(); // create and displays a window with SDL2
     void fill_board_rect(SDL_Renderer *renderer, int32_t coord_x, int32_t coord_y, int32_t w, int32_t h, Color color); // just filling the board with the rect method of SDL to get the tetrinos
-    void draw_onboard(SDL_Renderer *renderer, int32_t row, int32_t col, uint8_t value, int32_t delta_x, int32_t delta_y); // now we are drawing the rect (cells/pieces) filled above
-    void draw_tetrino(SDL_Renderer *renderer, Tetrino_state *t_state, int32_t delta_x, int32_t delta_y); // drawing and rendering the JUST tetrinos using the draw_onboard method
+    void draw_onboard(SDL_Renderer *renderer, int32_t row, int32_t col, uint8_t value, int32_t delta_x, int32_t delta_y, bool gost_tetrino); // now we are drawing the rect (cells/pieces) filled above
+    void draw_tetrino(SDL_Renderer *renderer, Tetrino_state *t_state, int32_t delta_x, int32_t delta_y, bool gost_tetrino); // drawing and rendering the JUST tetrinos using the draw_onboard method
+    void draw_gost_tetrino(SDL_Renderer *renderer, int32_t coord_x, int32_t coord_y, int32_t w, int32_t h, Color color); // just draw the gost tetrino on the board. Uses sdl draw rect instead of fill rect
     void draw_board(SDL_Renderer *renderer, uint8_t *brd, int32_t offset_x, int32_t offset_y); // draw the game board WITHIN the tetrinos present on it
     void draw_text(SDL_Renderer *renderer,TTF_Font *f, const char *text, int32_t x, int32_t y, Text_Align alignment, Color color); // draw the text on the screen
     void render_game(Tetris *tetris_game, SDL_Renderer *renderer, TTF_Font *f); // uses the functions above to renderr the game itself with the pieces and other features

@@ -30,6 +30,7 @@ const uint8_t FRAMES_PER_LEVEL[]={
     2,
     2,
     2,
+    2,
 	1
 };
 

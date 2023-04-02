@@ -37,7 +37,7 @@ int Board::display_game(){
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
         (width)*GRID_SIZE,
-        (height)*GRID_SIZE + 60,
+        (height)*GRID_SIZE + 30,
         SDL_WINDOW_ALLOW_HIGHDPI
     );
     SDL_Renderer *renderer = SDL_CreateRenderer(
@@ -47,12 +47,12 @@ int Board::display_game(){
     );
 
     const char *used_font = "novem___.ttf";
-    TTF_Font *f = TTF_OpenFont(used_font,30);
+    TTF_Font *f = TTF_OpenFont(used_font,25);
 
     Tetris game = {};
     Keyboard input = {};
 
-    game.spawn_tetrino(&game);
+    game.spawn_tetrino();
 
     game.piece.index=2;
 
@@ -121,7 +121,7 @@ void Board::fill_board_rect(SDL_Renderer *renderer, int32_t coord_x, int32_t coo
     SDL_RenderFillRect(renderer,&board_rect);
 }
 
-void Board::draw_onboard(SDL_Renderer *renderer, int32_t row, int32_t col, uint8_t idx, int32_t delta_x, int32_t delta_y){
+void Board::draw_onboard(SDL_Renderer *renderer, int32_t row, int32_t col, uint8_t idx, int32_t delta_x, int32_t delta_y, bool gost_tetrino=false){
     // mapping the rect coordenates on the screen
     Color basics = BASE_COLORS[idx];
     Color lights = LIGHT_COLORS[idx];
@@ -130,6 +130,14 @@ void Board::draw_onboard(SDL_Renderer *renderer, int32_t row, int32_t col, uint8
     int32_t x = col * GRID_SIZE + delta_x; // mapping x and y on the grid. To find the X values you have to iter the columns
     int32_t y = row * GRID_SIZE + delta_y; // to find the Y values you have to iter at the rows
 
+    if(gost_tetrino == true){
+
+        draw_gost_tetrino(renderer,x,y,GRID_SIZE,GRID_SIZE,basics);
+        return;
+
+    }
+
+    
     fill_board_rect(renderer,x,y,GRID_SIZE,GRID_SIZE,darks); // drawing the first cell
     
     // overdrawing with different colors to make a small render effect of various squares
@@ -139,7 +147,7 @@ void Board::draw_onboard(SDL_Renderer *renderer, int32_t row, int32_t col, uint8
 
 }
 
-void Board::draw_tetrino(SDL_Renderer *renderer, Tetrino_state *t_state, int32_t delta_x, int32_t delta_y){
+void Board::draw_tetrino(SDL_Renderer *renderer, Tetrino_state *t_state, int32_t delta_x, int32_t delta_y, bool gost_tetrino = false){
     
     const Tetrino *tetrino = TETRINOS + t_state->index; // selecting the type of the tetrino (I,O,L,...)
     assert(tetrino);
@@ -151,10 +159,23 @@ void Board::draw_tetrino(SDL_Renderer *renderer, Tetrino_state *t_state, int32_t
             {
                 draw_onboard(renderer, row + t_state->offset_row,
                              col + t_state->offset_col,
-                             value, delta_x, delta_y);
+                             value, delta_x, delta_y, gost_tetrino);
             }
         }
     }
+}
+
+void Board::draw_gost_tetrino(SDL_Renderer *renderer, int32_t coord_x, int32_t coord_y, int32_t w, int32_t h, Color color)
+{
+    SDL_Rect board_rect={};
+    
+    board_rect.x = coord_x; // the x location of the rectangle's upper left corner
+    board_rect.y = coord_y; // the y location of the rectangle's upper left corner
+    board_rect.w = w; // the width of the rectangle
+    board_rect.h = h; // the height of the rectangle
+
+    SDL_SetRenderDrawColor(renderer,color.r,color.g,color.b,color.a); // setting the colors
+    SDL_RenderDrawRect(renderer,&board_rect);
 }
 
 void Board::draw_board(SDL_Renderer *renderer, uint8_t *brd,int32_t offset_x, int32_t offset_y){
@@ -203,13 +224,27 @@ void Board::draw_text(SDL_Renderer *renderer,TTF_Font *f, const char *text, int3
 
 void Board::render_game(Tetris *tetris_game, SDL_Renderer *renderer,TTF_Font *f){
     
-    int32_t margin_on_top = 60;
+    int32_t margin_on_top = 30;
+    char buffer[4096];
     
     draw_board(renderer,tetris_game->board,0,margin_on_top);
 
     // just draw the tetrino if the game phase is play!!!
     if(tetris_game->phase == TETRIS_GAME_PLAY){
         draw_tetrino(renderer,&tetris_game->piece,0,margin_on_top);
+
+        Tetrino_state piece = tetris_game->piece; // copying the piece to draw it as a gost piece
+
+        // we will check the possible places for the gost (also the actual piece) at the bottom of the board
+        while(check_board_limits(tetris_game->board,&piece)){
+            // while we have space, we incrememt the position
+            piece.offset_row++;
+        }
+        --piece.offset_row;
+
+        //draw the gost piece
+        draw_tetrino(renderer,&piece,0,margin_on_top,true);
+
     }
     
     if(tetris_game->phase == TETRIS_GAME_HIGHLIGHT_LINE){
@@ -226,13 +261,30 @@ void Board::render_game(Tetris *tetris_game, SDL_Renderer *renderer,TTF_Font *f)
         draw_text(renderer,f,"GAME OVER!!!",width*GRID_SIZE/2,height*GRID_SIZE/2,TEXT_CENTER,Color(0xFF,0xFF,0xFF,0xFF));
     }
 
-    // draw_text(renderer,f,"TETRIS AL V0",width*GRID_SIZE/2,0,TEXT_CENTER,Color(0xFF,0xFF,0xFF,0xFF));
-    char buffer[4096];
-    sprintf(buffer,"LEVEL = %d",tetris_game->level);
-    draw_text(renderer,f,buffer,0,0,TEXT_LEFT,Color(0xFF,0xFF,0xFF,0xFF));
+    else if(tetris_game->phase == TETRIS_GAME_START){
+        
+        draw_text(renderer,f,"PRESS SPACEBAR",width*GRID_SIZE/2, 
+        (height + (height-VISIBLE_HIGHT))*GRID_SIZE/2,TEXT_CENTER,Color(0xFF,0xFF,0xFF,0xFF));
 
-    sprintf(buffer,"POINTS = %d (%d)",tetris_game->points,tetris_game->line_count);
-    draw_text(renderer,f,buffer,0,30,TEXT_LEFT,Color(0xFF,0xFF,0xFF,0xFF));
+        draw_text(renderer,f,"TO START THE GAME!!!",width*GRID_SIZE/2, 
+        (height + (2+height-VISIBLE_HIGHT))*GRID_SIZE/2,TEXT_CENTER,Color(0xFF,0xFF,0xFF,0xFF));
+
+        sprintf(buffer,"STARTING LEVEL = %d ",tetris_game->start_level);
+        draw_text(renderer,f,buffer,width*GRID_SIZE/2, 
+        (height + (4+height-VISIBLE_HIGHT))*GRID_SIZE/2,TEXT_CENTER,Color(0xFF,0xFF,0xFF,0xFF));
+
+    }
+    // colors the invisible lines of black
+    fill_board_rect(renderer,0,margin_on_top,width*GRID_SIZE,(height-VISIBLE_HIGHT)*GRID_SIZE,Color(0x00,0x00,0x00,0x00)); // set just the visible rows to the user to see it
+
+    sprintf(buffer,"POINTS = %d ",tetris_game->points);
+    draw_text(renderer,f,buffer,0,2,TEXT_LEFT,Color(0xFF,0xFF,0xFF,0xFF));
+
+    sprintf(buffer,"FILLED LINES = %d ",tetris_game->line_count);
+    draw_text(renderer,f,buffer,0,32,TEXT_LEFT,Color(0xFF,0xFF,0xFF,0xFF));
+    
+    sprintf(buffer,"LEVEL = %d",tetris_game->level);
+    draw_text(renderer,f,buffer,0,62,TEXT_LEFT,Color(0xFF,0xFF,0xFF,0xFF));
 }
 
 bool Board::check_board_limits(uint8_t* brd,Tetrino_state *tetrino_state){
@@ -323,6 +375,7 @@ void Board::update_tetrisgame_state(Tetris *game, Keyboard *input){
 
     int32_t first_row = 0;
     if(!see_row_empty(game->board,first_row)){
+        
         game->phase = TETRIS_GAME_OVER;
     }
 }
@@ -353,7 +406,7 @@ bool Board::soft_drop(Tetris *game){
         // then, now, we merge the piece into the board
         merge_tetrino_into_board(game);
         // and right after that we spawn a new tetrino
-        game->spawn_tetrino(game);
+        game->spawn_tetrino();
         return false;
     }
     game->next_tetrino_drop_time = game->time + game->get_next_drop_time();
@@ -428,13 +481,13 @@ void Board::update_board_lines(Tetris *game){
 
 void Board::update_tetris_game(Tetris *game, Keyboard *input){
     switch(game->phase){
-        case TETRIS_GAME_START : return game->update_game_start_state(game,input);
+        case TETRIS_GAME_START : return game->update_game_start_state(input);
         break;
         case TETRIS_GAME_PLAY : return update_tetrisgame_state(game,input); // goes updating the tetrinos on the board and play the normal game
         break;
         case TETRIS_GAME_HIGHLIGHT_LINE : return update_board_lines(game); // moment when a line is filled -> blocks the game for a little while
         break;
-        case TETRIS_GAME_OVER : return game->update_game_over_state(game,input);
+        case TETRIS_GAME_OVER : return game->update_game_over_state(input);
         break;
     }
 }
