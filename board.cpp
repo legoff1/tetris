@@ -36,7 +36,7 @@ int Board::display_game(){
         "Tetris",
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
-        (width)*GRID_SIZE,
+        (width)*GRID_SIZE + 200,
         (height)*GRID_SIZE + 30,
         SDL_WINDOW_ALLOW_HIGHDPI
     );
@@ -53,8 +53,6 @@ int Board::display_game(){
     Keyboard input = {};
 
     game.spawn_tetrino();
-
-    game.piece.index=2;
 
     if(NULL == window){
         std::cout << "Error Detected" << std::endl;
@@ -232,6 +230,9 @@ void Board::render_game(Tetris *tetris_game, SDL_Renderer *renderer,TTF_Font *f)
     // just draw the tetrino if the game phase is play!!!
     if(tetris_game->phase == TETRIS_GAME_PLAY){
         draw_tetrino(renderer,&tetris_game->piece,0,margin_on_top);
+        
+        //draw the next piece
+        draw_tetrino(renderer,&tetris_game->next_piece,width*GRID_SIZE/2 + 210,(height/2)*GRID_SIZE/2+50);
 
         Tetrino_state piece = tetris_game->piece; // copying the piece to draw it as a gost piece
 
@@ -285,6 +286,9 @@ void Board::render_game(Tetris *tetris_game, SDL_Renderer *renderer,TTF_Font *f)
     
     sprintf(buffer,"LEVEL = %d",tetris_game->level);
     draw_text(renderer,f,buffer,0,62,TEXT_LEFT,Color(0xFF,0xFF,0xFF,0xFF));
+
+    sprintf(buffer,"NEXT PIECE");
+    draw_text(renderer,f,buffer,width*GRID_SIZE/2 + 250,(height/2)*GRID_SIZE/2,TEXT_CENTER,Color(0xFF,0xFF,0xFF,0xFF));
 }
 
 bool Board::check_board_limits(uint8_t* brd,Tetrino_state *tetrino_state){

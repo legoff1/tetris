@@ -19,7 +19,7 @@
 #define WIDTH 10
 #define HEIGHT 22 // 2 lines invisible to pop up new peaces without show to the user
 #define VISIBLE_HIGHT 20
-#define GRID_SIZE 40
+#define GRID_SIZE 30
 
 // =============================================== CLASS TETRINO STATE -> DEFINITION AND FUNCTION IMPLEMENTATIONS ==============================================
 
@@ -69,13 +69,15 @@ class Tetris
     uint8_t lines[HEIGHT]; // stores the filled lines
     
     Tetrino_state piece;
+    Tetrino_state next_piece;
+    bool first_piece;
 
     int32_t start_level;
     int32_t level;
     Tetris_Game_Phase phase;
     int32_t filled_line_count; // count the filled lines at each time
     int32_t line_count; // accumulate the filled lines
-    int32_t points;
+    int32_t points; 
 
     float time;// absolute time of the game
     float next_tetrino_drop_time; // time to drop the next tetrino

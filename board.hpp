@@ -19,6 +19,7 @@ class Board{
 private:
     const int32_t width;
     const int32_t height;
+    
 public:
     explicit Board(): width(WIDTH), height(HEIGHT){} //setting the constructor
 

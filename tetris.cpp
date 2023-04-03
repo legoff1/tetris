@@ -63,15 +63,35 @@ int32_t Tetris::min(int32_t x, int32_t y){
 }
 
 void Tetris::spawn_tetrino(){
-    piece = {};
+    uint8_t aux = 0;
     std::random_device dev;
     std::mt19937 rng(dev());
     std::uniform_int_distribution<std::mt19937::result_type> dist7(0,6); // generating a random index to pick up the new tetrino randomly without any bias
     uint8_t randidx = dist7(rng);
-    piece.index = randidx;
+    uint8_t randidx_next = dist7(rng);
+
+    // std::cout<<int(randidx)+1<<std::endl;
+    // std::cout<<int(randidx_next)+1<<std::endl;
+
+    if(first_piece){
+
+        piece = {};
+        next_piece = {};
+        piece.index = randidx;
+        next_piece.index = randidx_next;
+        first_piece = false;
+
+    }
+    else{
+        aux = next_piece.index;
+        next_piece.index = randidx_next;
+        piece.index = aux;
+    }
+    
     piece.offset_row = 0; 
     piece.offset_col = WIDTH/2;
     next_tetrino_drop_time = time + get_next_drop_time();
+
 }
 
 int32_t Tetris::check_lines_to_next_level(){
@@ -111,6 +131,7 @@ void Tetris::update_game_start_state(Keyboard *input)
         level = start_level;
         line_count = 0;
         points = 0;
+        first_piece = true;
         spawn_tetrino();
         
         phase = TETRIS_GAME_PLAY; // press space bar to begin the game at the level selected
