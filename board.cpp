@@ -523,10 +523,4 @@ void Board::update_tetris_game(Tetris *game, Keyboard *input){
         break;
     }
 }
-/*LEOZAO AQUI PARCEIRO, TO MANDANDO ESSA MSG PRA DIZER Q VAI DAR TD CERTO E Q CE VAI DESENROLAR ESSE TETRIS, PD FICAR TRANQUILO, TMJ SEMPRE. 
-BEIJO NA BUNDA GATAO
 
-ps: tive que dar uma mudada no nome das classes soh pela zueira
-
-NICE!!! 
-*/
