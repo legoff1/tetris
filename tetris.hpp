@@ -44,13 +44,15 @@ class Keyboard // take the inputs of the keyboard
     uint8_t right;
     uint8_t up;
     uint8_t down;
-    uint8_t space; // enables hard drop 
+    uint8_t space; // enables hard drop
+    uint8_t hold;
     
     int8_t dleft;
     int8_t dright;
     int8_t dup;
     int8_t ddown;
     int8_t dspace;
+    int8_t dhold;
 };
 
 // =============================================== CLASS TETRIS -> DEFINITION AND FUNCTION IMPLEMENTATIONS ==============================================
@@ -58,6 +60,7 @@ class Keyboard // take the inputs of the keyboard
 enum Tetris_Game_Phase{ // Phases of the Tetris game
     TETRIS_GAME_START, // start phase of the game -> defined by the user
     TETRIS_GAME_PLAY, // normal play phase
+    TETRIS_HOLD_PIECE, // phase to handle the hold piece functionality
     TETRIS_GAME_HIGHLIGHT_LINE, // phase in wich we clear a line and highlight it. The game should stop for a really little amount of time
     TETRIS_GAME_OVER // Game over phase 
 };
@@ -70,7 +73,10 @@ class Tetris
     
     Tetrino_state piece;
     Tetrino_state next_piece;
+    Tetrino_state holded_piece;
     bool first_piece;
+    bool hold_piece;
+    bool hold_valid = false;
 
     int32_t start_level;
     int32_t level;
@@ -89,6 +95,7 @@ class Tetris
     int32_t max(int32_t x, int32_t y);
     int32_t min(int32_t x, int32_t y);
     void spawn_tetrino(); // spawn a new tetrino after the last one reaches the limit of the board.
+    void handle_hold_state(); // checks if it is to hold a piece and swap it if yes
     void update_game_over_state(Keyboard *input); // update the game when gameover happens
     void update_game_start_state(Keyboard *input);  // set the start of the game (select also starting level)
     

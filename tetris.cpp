@@ -87,11 +87,39 @@ void Tetris::spawn_tetrino(){
         next_piece.index = randidx_next;
         piece.index = aux;
     }
-    
+        
     piece.offset_row = 0; 
     piece.offset_col = WIDTH/2;
     next_tetrino_drop_time = time + get_next_drop_time();
 
+}
+
+void Tetris::handle_hold_state()
+{   // hold phase just happens in play phase
+    
+    uint8_t aux_index;
+
+    if(hold_piece==false){
+        // there wasn`t a piece holded
+        //so we hold the current piece and we spawn a new one as usual
+        holded_piece.index = piece.index;
+        spawn_tetrino();
+        hold_piece=true;
+        hold_valid=false;
+    }
+    else if(hold_valid){
+        // if there was already a piece holded we just change the piece
+        aux_index = piece.index;
+        piece.index = holded_piece.index;
+        holded_piece.index = aux_index;
+        piece.offset_row = 0; //setting the row to the first one
+        piece.offset_col = WIDTH/2;
+        next_tetrino_drop_time = time + get_next_drop_time();
+        hold_valid = false;
+    }
+
+    phase = TETRIS_GAME_PLAY; //go back to the play phase
+    
 }
 
 int32_t Tetris::check_lines_to_next_level(){
